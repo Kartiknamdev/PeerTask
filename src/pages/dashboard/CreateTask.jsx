@@ -1,0 +1,443 @@
+import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  HiOutlineDocument,
+  HiOutlineCurrencyDollar,
+  HiOutlineCalendar,
+  HiOutlineTag,
+} from "react-icons/hi";
+import { motion } from "framer-motion";
+import { useTasks } from "../../contextStore/task.context";
+
+const categories = [
+  "ProofReading",
+  "Editing",
+  "Formating",
+  "Transcription",
+  "Resume",
+  "Legal",
+  "Academic",
+  "Business",
+  "Other",
+];
+
+const CreateTask = () => {
+  const navigate = useNavigate();
+  const { submitTask } = useTasks();
+
+  // Form refs
+  const titleRef = useRef();
+  const descriptionRef = useRef();
+  const requirementsRef = useRef();
+  const budgetRef = useRef();
+  const deadlineRef = useRef();
+  const categoryRef = useRef();
+  const tagsRef = useRef();
+
+  const [files, setFiles] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  // Handle file input
+  const handleFileChange = (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    const validFiles = selectedFiles.filter((file) => {
+      const fileSizeInMB = file.size / (1024 * 1024);
+      return fileSizeInMB <= 10;
+    });
+    setFiles((prev) => [...prev, ...validFiles]);
+  };
+
+  const removeFile = (index) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Handle form submit
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const formErrors = {};
+
+    if (!titleRef.current.value.trim()) formErrors.title = "Title is required";
+    if (!descriptionRef.current.value.trim())
+      formErrors.description = "Description is required";
+    if (!budgetRef.current.value || isNaN(budgetRef.current.value))
+      formErrors.budget = "Valid budget is required";
+    if (!deadlineRef.current.value)
+      formErrors.deadline = "Deadline is required";
+    if (!categoryRef.current.value)
+      formErrors.category = "Category is required";
+
+    if (Object.keys(formErrors).length > 0) {
+      setErrors(formErrors);
+      return;
+    }
+
+    setLoading(true);
+    setErrors({});
+
+    const formData = new FormData();
+    formData.append("taskTitle", titleRef.current.value);
+    formData.append("requirements", requirementsRef.current.value);
+    formData.append("description", descriptionRef.current.value);
+    formData.append("category", categoryRef.current.value);
+    formData.append("budget", budgetRef.current.value);
+    formData.append("deadline", deadlineRef.current.value);
+    formData.append("createdBy", "userId"); // Replace this with real userId
+    formData.append("status", "open");
+
+    // Append tags properly
+    tagsRef.current.value
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter((tag) => tag !== "")
+      .forEach((tag) => formData.append("tags", tag));
+
+    // Append files properly
+    files.forEach((file) => formData.append("attachments", file));
+
+    try {
+      const result = await submitTask(formData);
+      if (result?.status === 201) {
+        alert("Task created successfully");
+      } else {
+        alert("Something went wrong");
+      }
+    } catch (error) {
+      console.error("Task submission error:", error);
+      alert("Server error");
+    }
+    setLoading(false);
+    titleRef.current.value = "";
+    descriptionRef.current.value = "";
+    requirementsRef.current.value = "";
+    budgetRef.current.value = "";
+    deadlineRef.current.value = "";
+    categoryRef.current.value = "";
+    tagsRef.current.value = "";
+    setFiles([]);
+    setErrors({});
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="bg-white rounded-2xl shadow-lg p-8 md:p-12 lg:p-16"
+    >
+      <div className="mb-8">
+        <h1 className="text-3xl font-extrabold text-blue-900">Create New Task</h1>
+        <p className="text-gray-600 mt-2">
+          Post a new document task for freelancers to work on.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Title */}
+        <div>
+          <label
+            htmlFor="title"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Task Title <span className="text-red-500">*</span>
+          </label>
+          <div className="mt-1 relative rounded-md shadow-sm">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <HiOutlineDocument
+                className="h-5 w-5 text-gray-400"
+                aria-hidden="true"
+              />
+            </div>
+            <input
+              type="text"
+              name="title"
+              id="title"
+              className={`form-input pl-10 ${
+                errors.title ? "border-red-500 focus:ring-red-500" : ""
+              }`}
+              placeholder="e.g., Proofread Marketing Document"
+              ref={titleRef}
+              aria-invalid={errors.title ? "true" : "false"}
+              aria-describedby="title-error"
+            />
+          </div>
+          {errors.title && (
+            <p className="mt-2 text-sm text-red-600" id="title-error">
+              {errors.title}
+            </p>
+          )}
+        </div>
+
+        {/* Description */}
+        <div>
+          <label
+            htmlFor="description"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Task Description <span className="text-red-500">*</span>
+          </label>
+          <div className="mt-1">
+            <textarea
+              id="description"
+              name="description"
+              rows={4}
+              className={`form-input ${
+                errors.description ? "border-red-500 focus:ring-red-500" : ""
+              }`}
+              placeholder="Provide a detailed description of what needs to be done"
+              ref={descriptionRef}
+              aria-invalid={errors.description ? "true" : "false"}
+              aria-describedby="description-error"
+            ></textarea>
+          </div>
+          {errors.description && (
+            <p className="mt-2 text-sm text-red-600" id="description-error">
+              {errors.description}
+            </p>
+          )}
+        </div>
+
+        {/* Requirements */}
+        <div>
+          <label
+            htmlFor="requirements"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Requirements
+          </label>
+          <div className="mt-1">
+            <textarea
+              id="requirements"
+              name="requirements"
+              rows={3}
+              className="form-input"
+              placeholder="Any specific instructions or qualifications"
+              ref={requirementsRef}
+            ></textarea>
+          </div>
+        </div>
+
+        {/* Budget and Deadline */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label
+              htmlFor="budget"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Budget (USD) <span className="text-red-500">*</span>
+            </label>
+            <div className="mt-1 relative rounded-md shadow-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <HiOutlineCurrencyDollar
+                  className="h-5 w-5 text-gray-400"
+                  aria-hidden="true"
+                />
+              </div>
+              <input
+                type="number"
+                name="budget"
+                id="budget"
+                min="1"
+                className={`form-input pl-10 ${
+                  errors.budget ? "border-red-500 focus:ring-red-500" : ""
+                }`}
+                placeholder="e.g., 150"
+                ref={budgetRef}
+                aria-invalid={errors.budget ? "true" : "false"}
+                aria-describedby="budget-error"
+              />
+            </div>
+            {errors.budget && (
+              <p className="mt-2 text-sm text-red-600" id="budget-error">
+                {errors.budget}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label
+              htmlFor="deadline"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Deadline <span className="text-red-500">*</span>
+            </label>
+            <div className="mt-1 relative rounded-md shadow-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <HiOutlineCalendar
+                  className="h-5 w-5 text-gray-400"
+                  aria-hidden="true"
+                />
+              </div>
+              <input
+                type="date"
+                name="deadline"
+                id="deadline"
+                className={`form-input pl-10 ${
+                  errors.deadline ? "border-red-500 focus:ring-red-500" : ""
+                }`}
+                ref={deadlineRef}
+                aria-invalid={errors.deadline ? "true" : "false"}
+                aria-describedby="deadline-error"
+              />
+            </div>
+            {errors.deadline && (
+              <p className="mt-2 text-sm text-red-600" id="deadline-error">
+                {errors.deadline}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Category and Tags */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label
+              htmlFor="category"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Category <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="category"
+              name="category"
+              className={`form-select ${
+                errors.category ? "border-red-500 focus:ring-red-500" : ""
+              }`}
+              ref={categoryRef}
+              aria-invalid={errors.category ? "true" : "false"}
+              aria-describedby="category-error"
+            >
+              <option value="">Select a category</option>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+            {errors.category && (
+              <p className="mt-2 text-sm text-red-600" id="category-error">
+                {errors.category}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label
+              htmlFor="tags"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Tags (comma separated)
+            </label>
+            <div className="mt-1 relative rounded-md shadow-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <HiOutlineTag
+                  className="h-5 w-5 text-gray-400"
+                  aria-hidden="true"
+                />
+              </div>
+              <input
+                type="text"
+                name="tags"
+                id="tags"
+                className="form-input pl-10"
+                placeholder="e.g., urgent, blog, formal"
+                ref={tagsRef}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Attachments */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Attachments
+          </label>
+          <div className="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed border-gray-300 rounded-md">
+            <div className="space-y-1 text-center">
+              <svg
+                className="mx-auto h-12 w-12 text-gray-400"
+                stroke="currentColor"
+                fill="none"
+                viewBox="0 0 48 48"
+                aria-hidden="true"
+              >
+                <path
+                  d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <div className="flex text-sm text-gray-600">
+                <label
+                  htmlFor="file-upload"
+                  className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                >
+                  <span>Upload a file</span>
+                  <input
+                    id="file-upload"
+                    name="file-upload"
+                    type="file"
+                    className="sr-only"
+                    multiple
+                    onChange={handleFileChange}
+                  />
+                </label>
+                <p className="pl-1">or drag and drop</p>
+              </div>
+              <p className="text-xs text-gray-500">
+                PDF, DOC, DOCX, TXT etc., up to 10MB each
+              </p>
+            </div>
+          </div>
+
+          {files.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                Selected Files:
+              </h4>
+              <ul className="divide-y divide-gray-200 border border-gray-200 rounded-md">
+                {files.map((file, index) => (
+                  <li
+                    key={index}
+                    className="px-4 py-3 flex justify-between items-center text-sm"
+                  >
+                    <span className="truncate">{file.name}</span>
+                    <button
+                      type="button"
+                      className="text-red-600 hover:underline"
+                      onClick={() => removeFile(index)}
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end space-x-3">
+          <button
+            type="button"
+            className="bg-white border border-gray-300 rounded-md shadow-sm py-2 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            onClick={() => navigate("/history")}
+            disabled={loading}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            disabled={loading}
+          >
+            {loading ? "Creating..." : "Create Task"}
+          </button>
+        </div>
+      </form>
+    </motion.div>
+  );
+};
+
+export default CreateTask;
