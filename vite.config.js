@@ -24,7 +24,7 @@ export default defineConfig({
     port: 5173,
     host: true,
     cors: {
-      origin: ['http://localhost:3000', 'https://pba-swart.vercel.app'],
+      origin: ['http://localhost:3000', 'pba2-kartikk12na-gmailcoms-projects.vercel.app'],
       credentials: true
     }
   },
