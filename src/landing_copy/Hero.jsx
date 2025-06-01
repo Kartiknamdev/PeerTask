@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import peerworkImage from '../assets/peerwork.png';
 
 const Hero = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -171,7 +172,7 @@ const Hero = () => {
               transition={{ duration: 0.3 }}
             >
               <motion.img 
-                src="/src/assets/peerwork.png" 
+                src={peerworkImage}
                 alt="PeerWork" 
                 className="w-full h-full object-cover"
                 initial={{ scale: 1.1 }}

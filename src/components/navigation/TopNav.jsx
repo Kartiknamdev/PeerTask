@@ -44,13 +44,12 @@ const TopNav = ({ openSidebar }) => {
     },
   };
 
-  return (
-    <header
+  return (    <header
       className={`${
         isDark
           ? 'bg-gradient-to-r from-gray-800/50 to-gray-900/50 border-gray-700/30'
           : 'bg-white border-gray-200'
-      } backdrop-blur-lg border-b transition-colors duration-200`}
+      } backdrop-blur-lg border-b transition-colors duration-200 relative z-[50]`}
     >
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
@@ -113,7 +112,7 @@ const TopNav = ({ openSidebar }) => {
               <AnimatePresence>
                 {notificationsOpen && (
                   <motion.div
-                    className="origin-top-right absolute right-0 mt-2 w-80 rounded-lg shadow-lg bg-gray-800 ring-1 ring-gray-700 ring-opacity-5 z-50"
+                    className="origin-top-right absolute right-0 mt-2 w-80 rounded-lg shadow-lg bg-gray-800 ring-1 ring-gray-800 ring-opacity-5 z-50"
                     variants={dropdownVariants}
                     initial="hidden"
                     animate="visible"
@@ -156,10 +155,8 @@ const TopNav = ({ openSidebar }) => {
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
-
-            {/* User menu */}
-            <div className="relative" ref={userMenuRef}>
+            </div>            {/* User menu */}
+            <div className="relative z-[999]" ref={userMenuRef}>
               <button
                 type="button"
                 className="flex items-center text-gray-300 hover:text-white focus:outline-none"
@@ -176,12 +173,10 @@ const TopNav = ({ openSidebar }) => {
                 <span className="ml-2 text-sm font-medium hidden sm:block">
                   {user?.name || 'User'}
                 </span>
-              </button>
-
-              <AnimatePresence>
+              </button>              <AnimatePresence>
                 {userMenuOpen && (
                   <motion.div
-                    className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-gray-800 ring-1 ring-gray-700 ring-opacity-5 z-50"
+                    className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-gray-800 ring-1 ring-gray-700 ring-opacity-5 z-[999]"
                     variants={dropdownVariants}
                     initial="hidden"
                     animate="visible"
