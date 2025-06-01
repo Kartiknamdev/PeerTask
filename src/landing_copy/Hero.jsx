@@ -86,13 +86,12 @@ const Hero = () => {
             <p className="text-xl sm:text-2xl md:text-3xl text-gray-600 mb-8 md:mb-14 px-2 sm:px-0">
               PeerTask connects students to complete micro-tasks, earn value, and build a community of mutual support.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4 sm:gap-6 mb-16">
-              <a 
-                href="#contact" 
+            <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4 sm:gap-6 mb-16">              <Link 
+                to="/signup" 
                 className="w-full sm:w-auto px-5 sm:px-8 py-3 sm:py-4 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 hover:scale-105 transition-all flex items-center justify-center"
               >
                 Get Started <ArrowRight className="ml-2 sm:ml-4 h-5 w-5 sm:h-6 sm:w-6" />
-              </a>
+              </Link>
               <Link 
                 to="/blog" 
                 className="w-full sm:w-auto px-5 sm:px-8 py-3 sm:py-4 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 hover:scale-105 transition-all flex items-center justify-center"
