@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useMemo } from "react";
+import { createContext, useContext, useState, useMemo, useCallback } from "react";
 import axios from "axios";
 import { useAuth } from "./auth.context";
 import { BACKEND_URL } from "../../constant";
@@ -17,9 +17,8 @@ export const MessageProvider = ({ children }) => {
   const [read, setRead] = useState(false);
 
   // Create a conversation
-  const createConversation = async (senderId, recieverId) => {
+  const createConversation = useCallback(async (senderId, recieverId) => {
     try {
-      alert("Creating conversation");
       const response = await axios.post(
         `${BACKEND_URL}/messages_route/create-conversation`,
         { senderId, recieverId },
@@ -36,11 +35,12 @@ export const MessageProvider = ({ children }) => {
       console.error("Error creating conversation:", error);
       throw error;
     }
-  };
+  }, [user?.accessToken]);
+
   // Load all conversations
-  const loadConversations = async function (userId) {
+  const loadConversations = useCallback(async (userId) => {
+    if (!userId || !user?.accessToken) return [];
     try {
-      // console.log("Loading conversations", userId,accessToken);
       const response = await axios.get(
         `${BACKEND_URL}/messages_route/get-all-conversations?userId=${userId}`,
         {
@@ -53,19 +53,21 @@ export const MessageProvider = ({ children }) => {
 
       const conversationList = response.data?.data;
       if (response.status === 200 && Array.isArray(conversationList)) {
-        setConversations(conversationList);
-        // console.log("Conversations loaded:", conversationList);
+        setConversations(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(conversationList)) return prev;
+          return conversationList;
+        });
       }
       return conversationList;
     } catch (error) {
       console.error("Error fetching conversations:", error);
       throw error;
     }
-  };
+  }, [user?.accessToken]);
 
-  const loadRecieverDetails = async (recieverIds) => {
+  const loadRecieverDetails = useCallback(async (recieverIds) => {
+    if (!recieverIds || recieverIds.length === 0 || !user?.accessToken) return [];
     try {
-      alert("Loading receiver details");
       const response = await axios.post(
         `${BACKEND_URL}/messages_route/get-all-reciever-details`,
         { recieverIds },
@@ -79,25 +81,27 @@ export const MessageProvider = ({ children }) => {
 
       const details = response.data?.data;
       if (response.status === 200 && Array.isArray(details)) {
-        alert("Receiver details loaded");
-        // console.log("ReceiverDetails loaded:", details);
-        setRecieverDetails(details);
+        setRecieverDetails(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(details)) return prev;
+          return details;
+        });
       }
       return details;
     } catch (error) {
       console.error("Error fetching other user details:", error);
       throw error;
     }
-  };
+  }, [user?.accessToken]);
 
   // Load messages
-  const loadMessages = async (conversationId, timeStamp=null, limit = 20) => {
+  const loadMessages = useCallback(async (conversationId, timeStamp = null, limit = 20) => {
+    if (!conversationId || !user?.accessToken) return [];
     try {
       setFetchedMessages(true);
-       const response = await axios.post(
+      const response = await axios.post(
         `${BACKEND_URL}/messages_route/get-messages`,
         {
-          senderId:user?.user?._id,
+          senderId: user?.user?._id,
           conversationId,
           timeStamp,
           limit,
@@ -112,31 +116,24 @@ export const MessageProvider = ({ children }) => {
 
       const messagesList = response.data?.data;
       if (response.status === 200 && Array.isArray(messagesList)) {
-        // console.log("messages loaded:", messagesList);
-        setMessages(messagesList);
+        // Only update if messages have actually changed to prevent flashing
+        setMessages(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(messagesList)) return prev;
+          return messagesList;
+        });
       }
       return messagesList;
     } catch (error) {
       console.error("Error fetching messages:", error);
       throw error;
     }
-  };
+  }, [user?.accessToken, user?.user?._id]);
 
   // Send a message
-  const sendMessage = async (content, conversationId, recieverId) => {
+  const sendMessage = useCallback(async (content, conversationId, recieverId) => {
+    if (!content || !conversationId || !user?.accessToken) return null;
     try {
       const senderId = user?.user?._id;
-      // alert("sending message");
-      // console.log(
-      //   content,
-      //   "\n",
-      //   conversationId,
-      //   "\n",
-      //   senderId,
-      //   "\n",
-      //   recieverId,
-      //   "\n"
-      // );
       const response = await axios.post(
         `${BACKEND_URL}/messages_route/send-message`,
         { content, conversationId, senderId, recieverId },
@@ -147,15 +144,12 @@ export const MessageProvider = ({ children }) => {
           },
         }
       );
-      if (response.status === 201) {
-        // console.log("message sent: ", response.data?.data);
-      }
       return response.data?.data;
     } catch (error) {
       console.error("Error sending message:", error);
       throw error;
     }
-  };
+  }, [user?.accessToken, user?.user?._id]);
 
   // Context value
   const contextValue = useMemo(
@@ -171,7 +165,18 @@ export const MessageProvider = ({ children }) => {
       loadMessages,
       sendMessage,
     }),
-    [conversations, RecieverDetails, messages, read]
+    [
+      createConversation,
+      conversations,
+      RecieverDetails,
+      messages,
+      FetchedMessages,
+      read,
+      loadConversations,
+      loadRecieverDetails,
+      loadMessages,
+      sendMessage
+    ]
   );
 
   return (

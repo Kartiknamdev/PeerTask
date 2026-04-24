@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { HiSearch, HiChat } from "react-icons/hi";
+import { HiSearch, HiChat, HiPaperAirplane, HiChevronLeft, HiDotsVertical, HiPhone, HiVideoCamera } from "react-icons/hi";
 import { format } from "date-fns";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../contextStore/auth.context.jsx";
 import { useMessage } from "../../contextStore/message.context.jsx";
 import defaultImage from "../../assets/image.png";
@@ -18,7 +18,6 @@ const Messages = () => {
     sendMessage,
     conversations,
     RecieverDetails,
-    FetchedMessages,
     messages,
   } = useMessage();
 
@@ -26,10 +25,11 @@ const Messages = () => {
   const [messageLoading, setMessageLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedConversation, setSelectedConversation] = useState(null);
-  const [newMessage, setNewMessage] = useState("");
   const [shouldScroll, setShouldScroll] = useState(true);
+  const [mobileShowChat, setMobileShowChat] = useState(false);
 
   const messagesEndRef = useRef(null);
+  const hasFetchedConversations = useRef(false);
 
   // Auto scroll only on new messages or conversation change
   useEffect(() => {
@@ -37,24 +37,19 @@ const Messages = () => {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
       setShouldScroll(false);
     }
-  }, [messages, selectedConversation]);
+  }, [messages, selectedConversation, shouldScroll]);
 
-  // Enable scroll on new message send
   const enableScroll = () => {
     setShouldScroll(true);
   };
 
-  // Load all conversations once after user is available
   useEffect(() => {
     const fetchConversations = async () => {
-      if (conversations.length > 0 || !currentUser?._id) return; // Prevent re-fetching
-      // Check if conversations are already loaded
+      if (!currentUser?._id || hasFetchedConversations.current) return;
       setLoading(true);
       try {
-        const conversationList = await loadConversations(currentUser._id);
-        if (conversationList?.length > 0) {
-          setSelectedConversation(conversationList[0]);
-        }
+        await loadConversations(currentUser._id);
+        hasFetchedConversations.current = true;
       } catch (error) {
         console.error("Error fetching conversations:", error);
       } finally {
@@ -62,43 +57,30 @@ const Messages = () => {
       }
     };
     if (currentUser?._id) fetchConversations();
-  }, [currentUser]);
+  }, [currentUser, loadConversations]);
 
-  // Load receiver details only once when conversations are available
   useEffect(() => {
-    // Check if receiver details are already fetched Check if conversations are available
     const fetchRecieverDetails = async () => {
-      if (RecieverDetails.length > 0 || conversations.length === 0) return;
-      setLoading(true);
+      if (conversations.length === 0 || (RecieverDetails && RecieverDetails.length > 0)) return;
       try {
-        const recieverIds = conversations.map(
-          (conversation) => conversation.recieverId
-        );
+        const recieverIds = conversations.map(c => c.recieverId);
         if (recieverIds.length > 0) {
           await loadRecieverDetails(recieverIds);
-         }
+        }
       } catch (error) {
         console.error("Error fetching receiver details:", error);
-      } finally {
-        setLoading(false);
       }
     };
     fetchRecieverDetails();
-  }, [conversations, RecieverDetails]);
+  }, [conversations, loadRecieverDetails]);
 
-  // Fetch messages when a conversation is selected
   useEffect(() => {
     let firstLoad = true;
-
     const fetchMessages = async () => {
       if (!selectedConversation) return;
-      
       try {
-        // Only show loading on first load of a conversation
-        if (firstLoad) {
-          setMessageLoading(true);
-        }
-        await loadMessages(selectedConversation._id, null, 20);
+        if (firstLoad) setMessageLoading(true);
+        await loadMessages(selectedConversation._id, null, 50);
       } catch (error) {
         console.error("Error fetching messages:", error);
       } finally {
@@ -110,245 +92,248 @@ const Messages = () => {
     };
 
     fetchMessages();
-
-    // Set up polling interval for real-time updates
     const interval = setInterval(fetchMessages, 3000);
-
     return () => {
       clearInterval(interval);
-      firstLoad = true; // Reset for next conversation selection
+      firstLoad = true;
     };
   }, [selectedConversation, loadMessages]);
 
-  // Select a conversation
-  const selectConversation = (conversation) => {
-    setSelectedConversation(conversation);
-    setNewMessage("");
-  };
-
-  // Send message
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    const messageToSend = messageRef.current.value;
-    if (!messageToSend.trim()) return;
+    const content = messageRef.current.value;
+    if (!content.trim() || !selectedConversation) return;
 
     try {
-      // Send message first
-      await sendMessage(
-        messageToSend,
-        selectedConversation._id,
-        selectedConversation.recieverId
-      );
-      // Clear input field
+      await sendMessage(content, selectedConversation._id, selectedConversation.recieverId);
       messageRef.current.value = "";
-      // Immediately load the new messages
-      await loadMessages(selectedConversation._id, null, 20);
-      // Scroll to bottom after sending
       enableScroll();
+      await loadMessages(selectedConversation._id, null, 50);
     } catch (error) {
       console.error("Error sending message:", error);
     }
   };
 
-  // Filter conversations based on search term
-  // conversation:{
-  //          conversationId,
-  //           receiverId,
-  //        }
-  const filteredConversations = conversations.filter((conversation) => {
-    if (!Array.isArray(RecieverDetails)) return false;
-
-    const receiver = RecieverDetails.find(
-      (receiverDetail) => receiverDetail._id === conversation.recieverId
-    );
-
+  const filteredConversations = conversations.filter((c) => {
+    const receiver = RecieverDetails.find(r => r._id === c.recieverId);
     const name = receiver?.fullName || "";
     return name.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
-  // Find current selected receiver details from RecieverDetails array
   const currentReceiver = selectedConversation
-    ? RecieverDetails.find(
-        (RecieverDetail) =>
-          RecieverDetail._id === selectedConversation.recieverId
-      )
+    ? RecieverDetails.find(r => r._id === selectedConversation.recieverId)
     : null;
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-        <p className="text-sm text-gray-600 mt-1">
-        
-        </p>
-      </div>      <div className="bg-gradient-to-r from-white to-gray-100/90 backdrop-blur-sm rounded-xl shadow-card max-h-screen h-screen flex flex-col sm:flex-row overflow-hidden">
-  {/* Sidebar */}
-  <div className="w-full sm:w-1/3 md:w-1/4 bg-gray-50 border-r border-gray-200 flex-shrink-0 flex flex-col">
-    {/* Search */}
-    <div className="p-4 border-b border-gray-200">
-      <div className="relative rounded-md">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <HiSearch className="h-5 w-5 text-gray-400" />
+    <div className="h-[calc(100vh-120px)] flex flex-col">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Messages</h1>
+          <p className="text-sm text-gray-500 font-medium">Connect and collaborate with your partners.</p>
         </div>
-        <input
-          type="text"
-          className="form-input pl-10 text-sm w-full"
-          placeholder="Search conversations"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
       </div>
-    </div>
 
-    {/* Conversations */}
-    <div className="flex-1 overflow-y-auto">
-      {loading ? (
-        <div className="flex justify-center items-center h-full">
-          <div className="animate-spin h-6 w-6 border-2 border-gray-200 border-l-primary-600 rounded-full"></div>
+      <div className="flex-1 bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden flex relative">
+        
+        {/* Conversations Sidebar */}
+        <div className={`w-full md:w-80 lg:w-96 border-r border-gray-100 flex flex-col bg-gray-50/30 ${mobileShowChat ? 'hidden md:flex' : 'flex'}`}>
+          <div className="p-6">
+            <div className="relative group">
+              <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors" />
+              <input
+                type="text"
+                placeholder="Search messages..."
+                className="w-full bg-white border-none rounded-2xl py-3.5 pl-12 pr-4 shadow-sm focus:ring-2 focus:ring-indigo-500/20 text-sm font-medium transition-all"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center h-full space-y-4">
+                <div className="w-8 h-8 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Loading Chats...</p>
+              </div>
+            ) : filteredConversations.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-400 text-sm font-medium">No conversations found</p>
+              </div>
+            ) : (
+              filteredConversations.map((c) => {
+                const receiver = RecieverDetails.find(r => r._id === c.recieverId);
+                const isActive = selectedConversation?._id === c._id;
+                return (
+                  <motion.button
+                    key={c._id}
+                    whileHover={{ x: 4 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setSelectedConversation(c);
+                      setMobileShowChat(true);
+                      enableScroll();
+                    }}
+                    className={`w-full flex items-center gap-4 p-4 rounded-[1.5rem] transition-all ${
+                      isActive 
+                        ? 'bg-white shadow-lg shadow-gray-200/50 ring-1 ring-gray-100' 
+                        : 'hover:bg-white/50'
+                    }`}
+                  >
+                    <div className="relative">
+                      <img
+                        src={receiver?.photo || defaultImage}
+                        alt=""
+                        className="w-12 h-12 rounded-2xl object-cover shadow-md"
+                      />
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full shadow-sm" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="flex justify-between items-start mb-0.5">
+                        <h4 className={`text-sm font-bold truncate ${isActive ? 'text-indigo-600' : 'text-gray-900'}`}>
+                          {receiver?.fullName || "Anonymous"}
+                        </h4>
+                        <span className="text-[10px] text-gray-400 font-bold">
+                          {c.updatedAt && format(new Date(c.updatedAt), "h:mm a")}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 line-clamp-1 font-medium">
+                        {c.lastMessage?.content || "Click to start chatting"}
+                      </p>
+                    </div>
+                  </motion.button>
+                );
+              })
+            )}
+          </div>
         </div>
-      ) : filteredConversations.length === 0 ? (
-        <div className="p-4 text-center text-gray-500">No conversations found</div>
-      ) : (
-        <ul className="divide-y divide-gray-200">
-          {filteredConversations.map((conversation) => {
-            const receiver = RecieverDetails.find(
-              (r) => r._id === conversation.recieverId
-            );
-            const photo = receiver?.photo || defaultImage;
-            const name = receiver?.fullName || "Unknown";
 
-            return (
-              <motion.li key={conversation._id} whileTap={{ backgroundColor: "#F3F4F6" }}>
-                <button
-                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 focus:outline-none ${
-                    selectedConversation?._id === conversation._id ? "bg-gray-100" : ""
-                  }`}
-                  onClick={() => selectConversation(conversation)}
-                >
-                  <div className="flex items-center">
-                    <img
-                      src={photo}
-                      alt={name}
-                      className="h-10 w-10 rounded-full object-cover"
-                    />
-                    <div className="ml-3 flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-gray-900 truncate">{name}</p>
-                        {conversation.lastMessage && (
-                          <p className="text-xs text-gray-500">
-                            {format(new Date(conversation.lastMessage), "h:mm a")}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between">
-                        {conversation.lastMessage ? (
-                          <p className="text-xs text-gray-500 truncate">
-                            {conversation.senderId === currentUser._id ? "You: " : ""}
-                            {conversation.lastMessage?.content || "No messages yet"}
-                          </p>
-                        ) : (
-                          <p className="text-xs text-black">No messages yet</p>
-                        )}
-                      </div>
+        {/* Chat Area */}
+        <div className={`flex-1 flex flex-col bg-white ${!mobileShowChat ? 'hidden md:flex' : 'flex'}`}>
+          {selectedConversation ? (
+            <>
+              {/* Chat Header */}
+              <div className="p-4 md:p-6 border-b border-gray-100 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-10">
+                <div className="flex items-center gap-4">
+                  <button 
+                    onClick={() => setMobileShowChat(false)}
+                    className="md:hidden p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                  >
+                    <HiChevronLeft className="w-6 h-6 text-gray-600" />
+                  </button>
+                  <img
+                    src={currentReceiver?.photo || defaultImage}
+                    alt=""
+                    className="w-10 h-10 md:w-12 md:h-12 rounded-2xl object-cover shadow-lg"
+                  />
+                  <div>
+                    <h3 className="text-sm md:text-base font-black text-gray-900 leading-none mb-1">
+                      {currentReceiver?.fullName || "Anonymous"}
+                    </h3>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                      <span className="text-[10px] md:text-xs text-gray-400 font-bold uppercase tracking-wider">Online Now</span>
                     </div>
                   </div>
-                </button>
-              </motion.li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
-  </div>
-
-  {/* Chat Panel */}
-  <div className="flex-1 flex flex-col h-full">
-    {selectedConversation ? (
-      <>
-        {/* Header */}
-        <div className="p-4 border-b border-gray-200 flex items-center">
-          <img
-            src={currentReceiver?.photo}
-            alt={currentReceiver?.fullName || "Unknown"}
-            className="h-10 w-10 rounded-full object-cover"
-          />
-          <div className="ml-3">
-            <p className="text-sm font-medium text-gray-900">{currentReceiver?.fullName || "Unknown"}</p>
-            <p className="text-xs text-gray-500">
-              {currentReceiver?.updatedAt
-                ? format(new Date(currentReceiver.updatedAt), "MMM d, yyyy")
-                : "No activity"}
-            </p>
-          </div>
-        </div>        {/* Messages */}
-        <div className="flex-1 p-4 overflow-y-auto max-h-[calc(100vh-200px)]">
-          {messages.map((message) => {
-              const isCurrentUser = message.sender === currentUser._id;
-            return (
-              <div
-                key={message._id}
-                className={`flex items-baseline ${
-                  isCurrentUser ? "justify-end" : "justify-start"
-                } mb-2`}
-              >
-                {!isCurrentUser && (
-                  <img
-                    src={currentReceiver?.photo}
-                    alt={currentReceiver?.fullName || "Unknown"}
-                    className="h-8 w-8 rounded-full object-cover mr-2"
-                  />
-                )}
-                <div
-                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                    isCurrentUser
-                      ? "bg-primary-400 text-white"
-                      : "bg-gray-100 text-gray-800"
-                  }`}
-                >
-                  <p className="text-sm">{message.content}</p>
-                  <p className="text-xs mt-1 text-right text-gray-500">
-                    {format(new Date(message.updatedAt), "h:mm a")}
-                  </p>
                 </div>
-                {isCurrentUser && (
-                  <img
-                    src={currentUser?.photo}
-                    alt={currentUser?.fullName || "You"}
-                    className="h-8 w-8 rounded-full object-cover ml-2"
-                  />
-                )}              </div>
-            );          })}
-          <div ref={messagesEndRef} />
-        </div>        {/* Input */}        <div className="p-4 border-t border-gray-200 bg-white text-black">
-          <form onSubmit={handleSendMessage} className="flex">
-            <input
-              type="text"
-              className="form-input flex-1"
-              placeholder="Type a message..."
-              ref={messageRef}
-            />
-            <button 
-              type="submit" 
-              className="ml-3 btn-primary"
-            >
-              Send
-            </button>
-          </form>
-        </div>
-      </>
-    ) : (
-      <div className="flex flex-col items-center justify-center h-full text-gray-500 text-center px-4">
-        <HiChat className="h-16 w-16 text-gray-300 mb-4" />
-        <p className="mb-1">No conversation selected</p>
-        <p className="text-sm">Select a conversation from the list to start chatting</p>
-      </div>
-    )}
-  </div>
-</div>
 
+                <div className="flex items-center gap-2">
+                  <button className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all hidden sm:flex">
+                    <HiPhone className="w-5 h-5" />
+                  </button>
+                  <button className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all hidden sm:flex">
+                    <HiVideoCamera className="w-5 h-5" />
+                  </button>
+                  <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all">
+                    <HiDotsVertical className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/30">
+                <AnimatePresence initial={false}>
+                  {messages.map((m, idx) => {
+                    const isMe = m.sender === currentUser?._id;
+                    const showAvatar = idx === 0 || messages[idx-1].sender !== m.sender;
+
+                    return (
+                      <motion.div
+                        key={m._id}
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        className={`flex items-end gap-3 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
+                      >
+                        {!isMe && (
+                          <div className="w-8 h-8 flex-shrink-0">
+                            {showAvatar && (
+                              <img src={currentReceiver?.photo || defaultImage} alt="" className="w-8 h-8 rounded-lg object-cover shadow-sm" />
+                            )}
+                          </div>
+                        )}
+                        <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                          <div className={`px-4 py-3 max-w-[85%] md:max-w-[70%] shadow-sm ${
+                            isMe 
+                              ? 'bg-indigo-600 text-white rounded-t-2xl rounded-bl-2xl rounded-br-none' 
+                              : 'bg-white text-gray-800 rounded-t-2xl rounded-br-2xl rounded-bl-none border border-gray-100'
+                          }`}>
+                            <p className="text-sm font-medium leading-relaxed">{m.content}</p>
+                          </div>
+                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1.5 px-1">
+                            {format(new Date(m.createdAt), "h:mm a")}
+                          </span>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Message Input */}
+              <div className="p-6 bg-white border-t border-gray-100">
+                <form 
+                  onSubmit={handleSendMessage}
+                  className="relative flex items-center gap-3"
+                >
+                  <div className="relative flex-1">
+                    <input
+                      ref={messageRef}
+                      type="text"
+                      placeholder="Type your message..."
+                      className="w-full bg-gray-50 border-none rounded-2xl py-4 pl-6 pr-12 focus:ring-2 focus:ring-indigo-500/20 text-sm font-medium transition-all"
+                    />
+                    <button 
+                      type="button" 
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition-colors"
+                    >
+                      <HiDotsVertical />
+                    </button>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    type="submit"
+                    className="p-4 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center"
+                  >
+                    <HiPaperAirplane className="w-5 h-5 rotate-90" />
+                  </motion.button>
+                </form>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-gray-50/20">
+              <div className="w-32 h-32 bg-indigo-50 rounded-[3rem] flex items-center justify-center mb-8 animate-pulse">
+                <HiChat className="w-16 h-16 text-indigo-400" />
+              </div>
+              <h3 className="text-2xl font-black text-gray-900 mb-2">Your Conversations</h3>
+              <p className="text-gray-500 max-w-xs font-medium">Select a partner from the sidebar to start collaborating on your projects.</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
 
 export default Messages;
-// This code is a React component for a messaging dashboard. It includes features like searching conversations, displaying messages, and sending new messages. The component uses hooks for state management and effects for data fetching. The UI is styled using Tailwind CSS and includes loading states and error handling.

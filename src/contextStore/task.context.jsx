@@ -44,7 +44,7 @@ export const TaskProvider = ({ children }) => {
 
   // Fetch all tasks for the user
   const fetchBrowseTasks = async (userId) => {
-    if (shouldFetchTasks && userId && user?.accessToken) {
+    if (userId && user?.accessToken) {
       try {
         const response = await axios.get(
           `${BACKEND_URL}/tasks/browse-task?userId=${userId}`,
@@ -72,19 +72,18 @@ export const TaskProvider = ({ children }) => {
         console.error("Error fetching tasks:", error);
         return [];
       }
-    } else {
-      // Return cached tasks if no fetch needed
-      return tasks;
     }
   };
 
-  // Auto-fetch tasks when shouldFetchTasks is true and user ID is available
+  // Auto-fetch tasks when user changes or refresh is requested
   useEffect(() => {
-    if (shouldFetchTasks && user?.user?._id) {
+    if (user?.user?._id) {
+      setShouldFetchTasks(true);
       fetchBrowseTasks(user.user._id);
-      setShouldFetchTasks(false);
+    } else {
+      setTasks([]); // Clear tasks if logged out
     }
-  }, [shouldFetchTasks, user]);
+  }, [user?.user?._id]);
 
   // Optional: reset `done` after some time or after UI reacts
   // For example, after a successful submit, reset done after 2 seconds

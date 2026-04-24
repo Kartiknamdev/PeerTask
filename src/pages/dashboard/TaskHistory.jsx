@@ -4,13 +4,12 @@ import { format } from 'date-fns';
 import { HiFilter, HiX } from 'react-icons/hi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTasks } from '../../contextStore/task.context';
+import { useAuth } from '../../contextStore/auth.context';
 
 const TaskHistory = () => {
-  // Mock user data
-  const user = {
-    id: 'user123',
-    userType: 'worker', // 'client' or 'worker'
-  };
+  const { user: authUser } = useAuth();
+  const user = authUser?.user || authUser || {};
+  const userId = user._id || user.id;
 
   // Mock tasks data
   const {tasks} = useTasks()
@@ -26,11 +25,11 @@ const TaskHistory = () => {
 
     // Get tasks based on type filter
     if (typeFilter === 'created') {
-      userTasks = tasks.filter((task) => task.createdBy === user.id);
+      userTasks = tasks.filter((task) => task.createdBy === userId);
     } else if (typeFilter === 'assigned') {
-      userTasks = tasks.filter((task) => task.assignedTo === user.id);
+      userTasks = tasks.filter((task) => task.assignedTo === userId);
     } else if (typeFilter === 'applied') {
-      userTasks = tasks.filter((task) => task.assignedTo === null && task.createdBy !== user.id);
+      userTasks = tasks.filter((task) => task.assignedTo === null && task.createdBy !== userId);
     }
 
     // Filter by status
@@ -42,7 +41,7 @@ const TaskHistory = () => {
     userTasks = userTasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     setFilteredTasks(userTasks);
-  }, [statusFilter, typeFilter, user.id]);
+  }, [statusFilter, typeFilter, userId, tasks]);
 
   // Reset filters
   const resetFilters = () => {
@@ -264,14 +263,14 @@ const TaskHistory = () => {
             </p>
             {user.userType === 'client' && typeFilter === 'created' && (
               <div className="mt-6">
-                <Link to="/create-task" className="btn-primary">
+                <Link to="/dashboardLayout/create-task" className="btn-primary">
                   Create a New Task
                 </Link>
               </div>
             )}
             {user.userType === 'worker' && (typeFilter === 'assigned' || typeFilter === 'applied') && (
               <div className="mt-6">
-                <Link to="/browse-tasks" className="btn-primary">
+                <Link to="/dashboardLayout/browse-tasks" className="btn-primary">
                   Browse Available Tasks
                 </Link>
               </div>
@@ -323,22 +322,22 @@ const TaskHistory = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredTasks.map((task) => (
                   <motion.tr
-                    key={task.id}
+                    key={task._id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.3 }}
                     className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => (window.location.href = `/tasks/${task.id}`)}
+                    onClick={() => (window.location.href = `/dashboardLayout/tasks`)}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{task.title}</div>
+                      <div className="text-sm font-medium text-gray-900">{task.taskTitle}</div>
                       {typeFilter === 'applied' && !task.assignedTo && (
                         <div className="text-xs text-gray-500">Application pending</div>
                       )}
-                      {typeFilter === 'applied' && task.assignedTo === user.id && (
+                      {typeFilter === 'applied' && task.assignedTo === userId && (
                         <div className="text-xs text-success-600">Your application was accepted</div>
                       )}
-                      {typeFilter === 'applied' && task.assignedTo && task.assignedTo !== user.id && (
+                      {typeFilter === 'applied' && task.assignedTo && task.assignedTo !== userId && (
                         <div className="text-xs text-gray-500">Task assigned to another worker</div>
                       )}
                     </td>
