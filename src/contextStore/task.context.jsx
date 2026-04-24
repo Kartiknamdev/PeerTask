@@ -42,6 +42,72 @@ export const TaskProvider = ({ children }) => {
     }
   };
 
+  // Apply to a task
+  const applyToTask = async (taskId) => {
+    try {
+      const response = await axios.post(
+        `${BACKEND_URL}/tasks/apply-task`,
+        { taskId },
+        {
+          headers: {
+            Authorization: `Bearer ${user?.accessToken}`,
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        setShouldFetchTasks(true); // refresh tasks list
+      }
+      return response;
+    } catch (error) {
+      console.error("Error applying to task:", error);
+      throw error;
+    }
+  };
+
+  // Delete a task
+  const deleteTask = async (taskId) => {
+    try {
+      const response = await axios.delete(
+        `${BACKEND_URL}/tasks/${taskId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${user?.accessToken}`,
+          },
+        }
+      );
+      if (response.status === 200) {
+        setShouldFetchTasks(true);
+      }
+      return response;
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      throw error;
+    }
+  };
+
+  // Update task status
+  const updateTaskStatus = async (taskId, status) => {
+    try {
+      const response = await axios.patch(
+        `${BACKEND_URL}/tasks/status/${taskId}`,
+        { status },
+        {
+          headers: {
+            Authorization: `Bearer ${user?.accessToken}`,
+          },
+        }
+      );
+      if (response.status === 200) {
+        setShouldFetchTasks(true);
+      }
+      return response;
+    } catch (error) {
+      console.error("Error updating task status:", error);
+      throw error;
+    }
+  };
+
   // Fetch all tasks for the user
   const fetchBrowseTasks = async (userId) => {
     if (userId && user?.accessToken) {
@@ -96,6 +162,9 @@ export const TaskProvider = ({ children }) => {
 
   const value = {
     submitTask,
+    applyToTask,
+    deleteTask,
+    updateTaskStatus,
     fetchBrowseTasks,
     shouldFetchTasks,
     tasks,

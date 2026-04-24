@@ -65,10 +65,13 @@ const Dashboard = () => {
   const { tasks } = useTasks();
   
   const userType = user.userType || 'client';
+  const userId = user._id || user.id;
 
-  // Calculate real stats if tasks are available
-  const activeTasks = tasks.filter(t => t.status === 'open' || t.status === 'in progress').length;
-  const completedTasks = tasks.filter(t => t.status === 'completed').length;
+  // Calculate real stats for the logged-in user
+  const myTasks = tasks.filter(t => t.createdBy === userId || t.assignedTo === userId);
+  const activeTasks = myTasks.filter(t => t.status === 'open' || t.status === 'in progress').length;
+  const totalPosted = tasks.filter(t => t.createdBy === userId).length;
+  const completedTasks = myTasks.filter(t => t.status === 'completed').length;
 
   return (
     <div className="min-h-screen pb-12">
@@ -125,7 +128,7 @@ const Dashboard = () => {
           <StatCard 
             icon={HiDocumentText} 
             title="Total Posted" 
-            value={tasks.length} 
+            value={totalPosted} 
             color="violet" 
             delay={0.2}
           />
@@ -163,8 +166,8 @@ const Dashboard = () => {
             </div>
 
             <div className="space-y-2 flex-1">
-              {tasks.length > 0 ? (
-                tasks.slice(0, 5).map((task, idx) => (
+              {myTasks.length > 0 ? (
+                myTasks.slice(0, 5).map((task, idx) => (
                   <ActivityItem 
                     key={task._id}
                     title={task.taskTitle}

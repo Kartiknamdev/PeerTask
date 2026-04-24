@@ -1,10 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { HiFilter, HiX } from 'react-icons/hi';
+import { 
+  HiFilter, 
+  HiRefresh, 
+  HiSearch, 
+  HiTrash, 
+  HiCheckCircle,
+  HiClock,
+  HiX
+} from 'react-icons/hi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTasks } from '../../contextStore/task.context';
 import { useAuth } from '../../contextStore/auth.context';
+import { useTasks } from '../../contextStore/task.context';
 
 const TaskHistory = () => {
   const { user: authUser } = useAuth();
@@ -12,11 +20,12 @@ const TaskHistory = () => {
   const userId = user._id || user.id;
 
   // Mock tasks data
-  const {tasks} = useTasks()
+  const { tasks, deleteTask, updateTaskStatus } = useTasks();
 
+  const userType = user.userType || 'client';
   const [filteredTasks, setFilteredTasks] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState(user.userType === 'client' ? 'created' : 'assigned');
+  const [typeFilter, setTypeFilter] = useState(userType === 'client' ? 'created' : 'assigned');
   const [showFilters, setShowFilters] = useState(false);
 
   // Load tasks based on filters
@@ -29,7 +38,9 @@ const TaskHistory = () => {
     } else if (typeFilter === 'assigned') {
       userTasks = tasks.filter((task) => task.assignedTo === userId);
     } else if (typeFilter === 'applied') {
-      userTasks = tasks.filter((task) => task.assignedTo === null && task.createdBy !== userId);
+      userTasks = tasks.filter((task) => 
+        task.applicants && task.applicants.includes(userId)
+      );
     }
 
     // Filter by status
@@ -103,7 +114,7 @@ const TaskHistory = () => {
               </div>
               <span className="text-xs bg-gray-100 py-1 px-2 rounded-full">
                 {typeFilter === 'created'
-                  ? 'Created by me'
+                  ? 'Posted by me'
                   : typeFilter === 'assigned'
                   ? 'Assigned to me'
                   : 'Applied by me'}
@@ -125,48 +136,42 @@ const TaskHistory = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="form-label">Type</label>
-                  <div className="mt-1 grid grid-cols-1 gap-2">
-                    {user.userType === 'client' && (
-                      <button
-                        type="button"
-                        className={`px-3 py-2 rounded-md border text-sm font-medium ${
-                          typeFilter === 'created'
-                            ? 'border-primary-300 bg-primary-50 text-primary-700'
-                            : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                        }`}
-                        onClick={() => setTypeFilter('created')}
-                      >
-                        Created by me
-                      </button>
-                    )}
+                  <div className="mt-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      className={`px-3 py-2 rounded-md border text-sm font-medium ${
+                        typeFilter === 'created'
+                          ? 'border-primary-300 bg-primary-50 text-primary-700'
+                          : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}
+                      onClick={() => setTypeFilter('created')}
+                    >
+                      Posted by me
+                    </button>
 
-                    {user.userType === 'worker' && (
-                      <>
-                        <button
-                          type="button"
-                          className={`px-3 py-2 rounded-md border text-sm font-medium ${
-                            typeFilter === 'assigned'
-                              ? 'border-primary-300 bg-primary-50 text-primary-700'
-                              : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                          }`}
-                          onClick={() => setTypeFilter('assigned')}
-                        >
-                          Assigned to me
-                        </button>
+                    <button
+                      type="button"
+                      className={`px-3 py-2 rounded-md border text-sm font-medium ${
+                        typeFilter === 'assigned'
+                          ? 'border-primary-300 bg-primary-50 text-primary-700'
+                          : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}
+                      onClick={() => setTypeFilter('assigned')}
+                    >
+                      Assigned to me
+                    </button>
 
-                        <button
-                          type="button"
-                          className={`px-3 py-2 rounded-md border text-sm font-medium ${
-                            typeFilter === 'applied'
-                              ? 'border-primary-300 bg-primary-50 text-primary-700'
-                              : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                          }`}
-                          onClick={() => setTypeFilter('applied')}
-                        >
-                          Applied by me
-                        </button>
-                      </>
-                    )}
+                    <button
+                      type="button"
+                      className={`px-3 py-2 rounded-md border text-sm font-medium ${
+                        typeFilter === 'applied'
+                          ? 'border-primary-300 bg-primary-50 text-primary-700'
+                          : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}
+                      onClick={() => setTypeFilter('applied')}
+                    >
+                      Applied by me
+                    </button>
                   </div>
                 </div>
 

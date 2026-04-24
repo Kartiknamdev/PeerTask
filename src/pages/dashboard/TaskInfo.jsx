@@ -8,7 +8,7 @@ import { useAuth } from "../../contextStore/auth.context";
 import { useMessage } from "../../contextStore/message.context.jsx";
 export default function TaskInfo() {
   const { user } = useAuth();
-  const { tasks } = useTasks();
+  const { tasks, applyToTask } = useTasks();
   const senderId = user?.user?._id;
   const recieverId = useParams().createdBy;
   const { createConversation } = useMessage();
@@ -29,8 +29,11 @@ export default function TaskInfo() {
     // console.log("senderId: ", user.user._id, "   recieverId: ", receiverId);
     // call the create conversation function from the message context
     try {
+      // First apply to the task so it shows up in history
+      await applyToTask(taskId);
+      
       const response = await createConversation(senderId,recieverId);
-        alert("Conversation created successfully");
+        // alert("Conversation created successfully");
         console.log("Conversation created successfully:", response.data);
         navigate("/dashboardLayout/messages");
     } catch (error) {
