@@ -60,9 +60,9 @@ const StatCard = ({ icon: Icon, title, value, bgColor }) => (
 const Dashboard = () => {
   const user = 'client'; // Placeholder for user type
   const [stats] = useState({
-    activeTasks: 2,
-    pendingTasks: 2,
-    completedTasks: 2,
+    activeTasks: 0,
+    pendingTasks: 0,
+    completedTasks: 0,
     earnings: 232, // For workers
   });
 
