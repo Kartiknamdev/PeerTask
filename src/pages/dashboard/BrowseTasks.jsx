@@ -58,7 +58,7 @@ export default function BrowseTasks() {
       const search = searchTerm.toLowerCase();
       if (
         search &&
-        !task.title.toLowerCase().includes(search) &&
+        !task.taskTitle.toLowerCase().includes(search) &&
         !task.description.toLowerCase().includes(search) &&
         !task.tags.some((tag) => tag.toLowerCase().includes(search))
       ) {
@@ -257,7 +257,7 @@ export default function BrowseTasks() {
                     <div className="px-6 py-4">
                       <div className="sm:flex sm:justify-between sm:items-baseline">
                         <h3 className="text-base font-medium text-gray-900">
-                          {task.title}
+                          {task.taskTitle}
                         </h3>
                         <div className="mt-1 sm:mt-0 text-sm font-medium text-success-600">
                           ${task.budget}
