@@ -9,13 +9,14 @@ import {
   HiCurrencyDollar,
   HiTag,
   HiCalendar,
+  HiRefresh,
 } from "react-icons/hi";
 import { useTasks } from "../../contextStore/task.context";
 import { useAuth } from "../../contextStore/auth.context";
 
 export default function BrowseTasks() {
   const { user } = useAuth();
-  const { tasks, shouldFetchTasks } = useTasks(); // Use the context
+  const { tasks, shouldFetchTasks, setShouldFetchTasks } = useTasks(); // Use the context
   const [searchTerm, setSearchTerm] = useState("");
   const [category, setCategory] = useState("");
   const [minBudget, setMinBudget] = useState("");
@@ -114,6 +115,14 @@ export default function BrowseTasks() {
           >
             <HiFilter className="h-5 w-5 mr-1" />
             Filters
+          </button>
+          <button
+            className={`btn-outline inline-flex items-center ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => setShouldFetchTasks(true)}
+            disabled={loading}
+          >
+            <HiRefresh className={`h-5 w-5 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
           </button>
         </div>
 

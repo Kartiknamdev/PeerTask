@@ -143,11 +143,24 @@ export const TaskProvider = ({ children }) => {
 
   // Auto-fetch tasks when user changes or refresh is requested
   useEffect(() => {
-    if (user?.user?._id && shouldFetchTasks) {
-      fetchBrowseTasks(user.user._id).finally(() => setShouldFetchTasks(false));
+    let intervalId;
+
+    if (user?.user?._id) {
+      if (shouldFetchTasks) {
+        fetchBrowseTasks(user.user._id).finally(() => setShouldFetchTasks(false));
+      }
+      
+      // Poll every 5 seconds to keep tasks synced across users
+      intervalId = setInterval(() => {
+        fetchBrowseTasks(user.user._id);
+      }, 5000);
     } else if (!user?.user?._id) {
       setTasks([]); // Clear tasks if logged out
     }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [user?.user?._id, shouldFetchTasks]);
 
   // Optional: reset `done` after some time or after UI reacts
