@@ -14,9 +14,8 @@ import { useTasks } from "../../contextStore/task.context";
 import { useAuth } from "../../contextStore/auth.context";
 
 export default function BrowseTasks() {
-  const { fetchBrowseTasks } = useTasks();
   const { user } = useAuth();
-  const { tasks, setTasks } = useTasks(); // Use the context
+  const { tasks, shouldFetchTasks } = useTasks(); // Use the context
   const [searchTerm, setSearchTerm] = useState("");
   const [category, setCategory] = useState("");
   const [minBudget, setMinBudget] = useState("");
@@ -30,22 +29,8 @@ export default function BrowseTasks() {
     .sort();
 
   useEffect(() => {
-    const fetchAndFilterTasks = async () => {
-      if (tasks.length === 0 && user?.user?._id) {
-        // Only fetch if tasks is empty
-        setLoading(true);
-        try {
-          const fetchedTasks = await fetchBrowseTasks(user.user._id);
-          setTasks(fetchedTasks); // Store fetched tasks in context
-        } catch (err) {
-          console.error("Error in fetchAndFilterTasks", err);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-    fetchAndFilterTasks();
-  }, [fetchBrowseTasks, setTasks, user?.user?._id, tasks.length]); // tasks.length as dependency
+    setLoading(shouldFetchTasks);
+  }, [shouldFetchTasks]);
 
   useEffect(() => {
     let filtered = tasks.filter((task) => {
@@ -260,7 +245,7 @@ export default function BrowseTasks() {
                           {task.taskTitle}
                         </h3>
                         <div className="mt-1 sm:mt-0 text-sm font-medium text-success-600">
-                          ${task.budget}
+                          ₹{task.budget}
                         </div>
                       </div>
                       <div className="mt-2">

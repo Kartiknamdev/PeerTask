@@ -143,13 +143,12 @@ export const TaskProvider = ({ children }) => {
 
   // Auto-fetch tasks when user changes or refresh is requested
   useEffect(() => {
-    if (user?.user?._id) {
-      setShouldFetchTasks(true);
-      fetchBrowseTasks(user.user._id);
-    } else {
+    if (user?.user?._id && shouldFetchTasks) {
+      fetchBrowseTasks(user.user._id).finally(() => setShouldFetchTasks(false));
+    } else if (!user?.user?._id) {
       setTasks([]); // Clear tasks if logged out
     }
-  }, [user?.user?._id]);
+  }, [user?.user?._id, shouldFetchTasks]);
 
   // Optional: reset `done` after some time or after UI reacts
   // For example, after a successful submit, reset done after 2 seconds

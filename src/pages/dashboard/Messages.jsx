@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { HiSearch, HiChat, HiPaperAirplane, HiChevronLeft, HiDotsVertical, HiPhone, HiVideoCamera } from "react-icons/hi";
+import { HiSearch, HiChat, HiPaperAirplane, HiChevronLeft, HiDotsVertical, HiPhone, HiVideoCamera, HiChevronDown, HiTrash } from "react-icons/hi";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../contextStore/auth.context.jsx";
@@ -11,11 +11,19 @@ const Messages = () => {
   const currentUser = user?.user;
   const messageRef = useRef(null);
 
+  const [mobileShowChat, setMobileShowChat] = useState(false);
+  const [showTaskDetails, setShowTaskDetails] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+
+  const messagesEndRef = useRef(null);
+  const hasFetchedConversations = useRef(false);
+
   const {
     loadConversations,
     loadRecieverDetails,
     loadMessages,
     sendMessage,
+    deleteConversation,
     conversations,
     RecieverDetails,
     messages,
@@ -26,10 +34,6 @@ const Messages = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [shouldScroll, setShouldScroll] = useState(true);
-  const [mobileShowChat, setMobileShowChat] = useState(false);
-
-  const messagesEndRef = useRef(null);
-  const hasFetchedConversations = useRef(false);
 
   // Auto scroll only on new messages or conversation change
   useEffect(() => {
@@ -124,6 +128,18 @@ const Messages = () => {
     ? RecieverDetails.find(r => r._id === selectedConversation.recieverId)
     : null;
 
+  const handleDeleteChat = async () => {
+    if (window.confirm("Are you sure you want to delete this chat? This cannot be undone.")) {
+      try {
+        await deleteConversation(selectedConversation._id);
+        setSelectedConversation(null);
+        setShowMenu(false);
+      } catch (error) {
+        alert("Failed to delete chat");
+      }
+    }
+  };
+
   return (
     <div className="h-[calc(100vh-120px)] flex flex-col">
       <div className="mb-6 flex items-center justify-between">
@@ -188,15 +204,22 @@ const Messages = () => {
                       />
                       <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full shadow-sm" />
                     </div>
-                    <div className="flex-1 text-left">
+                    <div className="flex-1 text-left min-w-0">
                       <div className="flex justify-between items-start mb-0.5">
                         <h4 className={`text-sm font-bold truncate ${isActive ? 'text-indigo-600' : 'text-gray-900'}`}>
                           {receiver?.fullName || "Anonymous"}
                         </h4>
-                        <span className="text-[10px] text-gray-400 font-bold">
+                        <span className="text-[10px] text-gray-400 font-bold flex-shrink-0 ml-2">
                           {c.updatedAt && format(new Date(c.updatedAt), "h:mm a")}
                         </span>
                       </div>
+                      {c.task?.taskTitle && (
+                        <div className="mb-1 flex">
+                          <span className="text-[9px] px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded-md font-bold truncate max-w-full">
+                            Task: {c.task.taskTitle}
+                          </span>
+                        </div>
+                      )}
                       <p className="text-xs text-gray-500 line-clamp-1 font-medium">
                         {c.lastMessage?.content || "Click to start chatting"}
                       </p>
@@ -237,18 +260,87 @@ const Messages = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 relative">
                   <button className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all hidden sm:flex">
                     <HiPhone className="w-5 h-5" />
                   </button>
                   <button className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all hidden sm:flex">
                     <HiVideoCamera className="w-5 h-5" />
                   </button>
-                  <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all">
+                  <button 
+                    onClick={() => setShowMenu(!showMenu)}
+                    className={`p-2 transition-all rounded-xl ${showMenu ? 'bg-indigo-50 text-indigo-600' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}`}
+                  >
                     <HiDotsVertical className="w-5 h-5" />
                   </button>
+
+                  <AnimatePresence>
+                    {showMenu && (
+                      <>
+                        <div className="fixed inset-0 z-20" onClick={() => setShowMenu(false)} />
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                          className="absolute right-0 top-12 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-30"
+                        >
+                          <button
+                            onClick={handleDeleteChat}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                          >
+                            <HiTrash className="w-4 h-4" />
+                            Delete Chat
+                          </button>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
+
+              {/* Task Context Bar */}
+              {selectedConversation.task && (
+                <div className="border-b border-indigo-100/50 bg-indigo-50/30">
+                  <button 
+                    onClick={() => setShowTaskDetails(!showTaskDetails)}
+                    className="w-full px-6 py-3 flex items-center justify-between group hover:bg-indigo-50/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                        <HiChat className="w-4 h-4" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest leading-none mb-1">Working on</p>
+                        <h4 className="text-xs font-bold text-gray-900">{selectedConversation.task.taskTitle}</h4>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Budget</p>
+                        <p className="text-xs font-black text-indigo-600">₹{selectedConversation.task.budget}</p>
+                      </div>
+                      <HiChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${showTaskDetails ? 'rotate-180 text-indigo-600' : ''}`} />
+                    </div>
+                  </button>
+                  
+                  <AnimatePresence>
+                    {showTaskDetails && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-17 pb-4 pl-[72px] pr-6">
+                          <p className="text-xs text-gray-600 font-medium leading-relaxed bg-white/50 p-4 rounded-2xl border border-indigo-100/30">
+                            {selectedConversation.task.description}
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
 
               {/* Messages Area */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/30">

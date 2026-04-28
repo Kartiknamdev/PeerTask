@@ -216,13 +216,13 @@ const Dashboard = () => {
               <h3 className="text-lg font-black text-gray-900 mb-4">Earnings Overview</h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-end">
-                  <span className="text-4xl font-black text-gray-900">$2,450</span>
+                  <span className="text-4xl font-black text-gray-900">₹1000</span>
                   <span className="text-green-500 font-bold text-sm">+8.2%</span>
                 </div>
                 <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
                   <div className="bg-indigo-600 h-full w-[65%]" />
                 </div>
-                <p className="text-xs text-gray-500 font-medium">You've reached 65% of your monthly goal.</p>
+                <p className="text-xs text-gray-500 font-medium">You've reached 100% of your monthly goal.</p>
               </div>
             </motion.div>
           </div>

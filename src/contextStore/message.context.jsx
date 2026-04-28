@@ -17,11 +17,11 @@ export const MessageProvider = ({ children }) => {
   const [read, setRead] = useState(false);
 
   // Create a conversation
-  const createConversation = useCallback(async (senderId, recieverId) => {
+  const createConversation = useCallback(async (senderId, recieverId, taskId) => {
     try {
       const response = await axios.post(
         `${BACKEND_URL}/messages_route/create-conversation`,
-        { senderId, recieverId },
+        { senderId, recieverId, taskId },
         {
           headers: {
             "Content-Type": "application/json",
@@ -151,6 +151,28 @@ export const MessageProvider = ({ children }) => {
     }
   }, [user?.accessToken, user?.user?._id]);
 
+  // Delete a conversation
+  const deleteConversation = useCallback(async (conversationId) => {
+    if (!conversationId || !user?.accessToken) return;
+    try {
+      const response = await axios.delete(
+        `${BACKEND_URL}/messages_route/${conversationId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${user?.accessToken}`,
+          },
+        }
+      );
+      if (response.status === 200) {
+        setConversations(prev => prev.filter(c => c._id !== conversationId));
+      }
+      return response;
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
+      throw error;
+    }
+  }, [user?.accessToken]);
+
   // Context value
   const contextValue = useMemo(
     () => ({
@@ -164,6 +186,7 @@ export const MessageProvider = ({ children }) => {
       loadRecieverDetails,
       loadMessages,
       sendMessage,
+      deleteConversation,
     }),
     [
       createConversation,
@@ -175,7 +198,8 @@ export const MessageProvider = ({ children }) => {
       loadConversations,
       loadRecieverDetails,
       loadMessages,
-      sendMessage
+      sendMessage,
+      deleteConversation
     ]
   );
 

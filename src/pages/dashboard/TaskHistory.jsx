@@ -322,6 +322,12 @@ const TaskHistory = () => {
                   >
                     Deadline
                   </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -331,8 +337,7 @@ const TaskHistory = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.3 }}
-                    className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => (window.location.href = `/dashboardLayout/tasks`)}
+                    className="hover:bg-gray-50 group"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{task.taskTitle}</div>
@@ -340,7 +345,7 @@ const TaskHistory = () => {
                         <div className="text-xs text-gray-500">Application pending</div>
                       )}
                       {typeFilter === 'applied' && task.assignedTo === userId && (
-                        <div className="text-xs text-success-600">Your application was accepted</div>
+                        <div className="text-xs text-green-600">Your application was accepted</div>
                       )}
                       {typeFilter === 'applied' && task.assignedTo && task.assignedTo !== userId && (
                         <div className="text-xs text-gray-500">Task assigned to another worker</div>
@@ -359,16 +364,50 @@ const TaskHistory = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">${task.budget}</div>
+                      <div className="text-sm text-gray-900">₹{task.budget}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">
                         {format(new Date(task.createdAt), 'MMM d, yyyy')}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">
-                        {format(new Date(task.deadline), 'MMM d, yyyy')}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {format(new Date(task.deadline), 'MMM d, yyyy')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end gap-2">
+                        {typeFilter === 'created' && task.status !== 'completed' && (
+                          <button
+                            onClick={() => {
+                              if(window.confirm("Mark this task as completed?")) {
+                                updateTaskStatus(task._id, 'completed');
+                              }
+                            }}
+                            className="p-2 text-green-500 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Mark as Done"
+                          >
+                            <HiCheckCircle className="w-5 h-5" />
+                          </button>
+                        )}
+                        {typeFilter === 'created' && (
+                          <button
+                            onClick={() => {
+                              if(window.confirm("Are you sure you want to delete this task?")) {
+                                deleteTask(task._id);
+                              }
+                            }}
+                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete Task"
+                          >
+                            <HiTrash className="w-5 h-5" />
+                          </button>
+                        )}
+                        <Link 
+                          to={`/dashboardLayout/tasks/${task._id}`}
+                          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                        >
+                          <HiSearch className="w-5 h-5" />
+                        </Link>
                       </div>
                     </td>
                   </motion.tr>

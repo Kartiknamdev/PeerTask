@@ -32,7 +32,7 @@ export default function TaskInfo() {
       // First apply to the task so it shows up in history
       await applyToTask(taskId);
       
-      const response = await createConversation(senderId,recieverId);
+      const response = await createConversation(senderId, recieverId, taskId);
         // alert("Conversation created successfully");
         console.log("Conversation created successfully:", response.data);
         navigate("/dashboardLayout/messages");
@@ -74,7 +74,7 @@ export default function TaskInfo() {
         <div className=" flex justify-between text-gray-700">
           <div>
             <p className="font-semibold  ">Amount:</p>
-            <p className="mt-1 text-green-700">${task.budget}</p>
+            <p className="mt-1 text-green-700">₹{task.budget}</p>
           </div>
 
           <div>

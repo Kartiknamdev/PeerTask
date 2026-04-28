@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   HiOutlineDocument,
-  HiOutlineCurrencyDollar,
+  HiOutlineCurrencyRupee,
   HiOutlineCalendar,
   HiOutlineTag,
   HiChevronRight,
@@ -284,7 +284,7 @@ const CreateTask = () => {
                 <label className="block text-sm font-bold text-gray-700">Estimated Budget (INR)</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <HiOutlineCurrencyDollar className="h-6 w-6 text-indigo-400" />
+                    <HiOutlineCurrencyRupee className="h-6 w-6 text-indigo-400" />
                   </div>
                   <input
                     type="number"
